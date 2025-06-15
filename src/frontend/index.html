@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>🎬 Детектор заставок</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 30px;
+            text-align: center;
+        }
+        input, button {
+            width: 100%;
+            margin: 10px 0;
+            display: block;
+        }
+        #progressBar {
+            width: 100%;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        #bar {
+            height: 30px;
+            width: 0%;
+            background-color: #4caf50;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            transition: width 0.3s ease-in-out;
+        }
+        #stepMessage {
+            margin-top: 10px;
+            font-size: 1em;
+            color: #555;
+        }
+        #loading {
+            margin-top: 10px;
+            font-size: 1em;
+            color: #888;
+            display: none;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Детектор заставок в сериале</h1>
+    <form id="uploadForm">
+        <input type="file" name="video" accept="video/*" required />
+        <button type="submit">🚀 Найти заставку</button>
+    </form>
+
+    <div id="progressBar">
+        <div id="bar">0%</div>
+    </div>
+
+    <div id="stepMessage"></div>
+    <div id="loading">⏳ Обработка... Это может занять некоторое время</div>
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById("uploadForm");
+        const progressBar = document.getElementById("bar");
+        const resultDiv = document.getElementById("result");
+        const loadingDiv = document.getElementById("loading");
+        const stepMessageDiv = document.getElementById("stepMessage");
+
+        let currentUid = null;
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            resultDiv.innerHTML = "";
+            progressBar.style.width = "0%";
+            progressBar.textContent = "0%";
+            stepMessageDiv.textContent = "";
+            loadingDiv.style.display = "block";
+
+            const formData = new FormData(form);
+            const response = await fetch("/detect-intro", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            currentUid = data.uid;
+        });
+
+        const socket = io();
+
+        socket.on("progress_update", function (data) {
+            if (data.uid === currentUid) {
+                loadingDiv.style.display = "none";
+
+                const percent = data.progress;
+                progressBar.style.width = percent + "%";
+                progressBar.textContent = percent + "%";
+
+                // Обновим текст текущего шага
+                stepMessageDiv.textContent = data.message;
+            }
+        });
+
+        socket.on("result", function (data) {
+            if (data.uid === currentUid) {
+                loadingDiv.style.display = "none";
+                stepMessageDiv.textContent = "";  // уберем сообщение о шагах
+
+                if (data.error) {
+                    resultDiv.textContent = "❌ Ошибка: " + data.error;
+                } else if (data.intro) {
+                    const [start, end] = data.intro;
+                    resultDiv.innerHTML = `✅ Заставка: <b>${start.toFixed(1)}с</b> – <b>${end.toFixed(1)}с</b>`;
+                } else {
+                    resultDiv.textContent = "❌ Заставка не найдена.";
+                }
+            }
+        });
+
+        socket.on("connect_error", function (err) {
+            loadingDiv.style.display = "none";
+            resultDiv.textContent = "❌ Ошибка соединения с сервером.";
+        });
+    </script>
+</body>
+</html>

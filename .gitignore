@@ -1,0 +1,13 @@
+data_test_short/*
+data_train_short/*
+models/*
+processed_data/*
+venv
+src/backend/temp
+src/__pycache__
+src/backend/__pycache__
+
+!data_test_short/.gitkeep
+!data_train_short/.gitkeep
+!models/.gitkeep
+!processed_data/.gitkeep
