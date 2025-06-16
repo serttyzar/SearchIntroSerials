@@ -104,8 +104,8 @@ opencv-python
   - Кастомная реализация CRF выбрана для избежания зависимости от внешних библиотек (например, `torchcrf`) и гибкости настройки переходов.
   - Альтернативы (Softmax) не учитывают зависимости между метками, что снижает качество интервалов.
 
-- **Focal Loss и веса классов**:
-  - Focal Loss (комментирован в коде) и веса классов (`class_weights=[1.0, 2.0]`) использованы для борьбы с дисбалансом (4.5175% меток 1).
+- **Веса классов**:
+  - Веса классов (`class_weights=[1.0, 2.0]`) использованы для борьбы с дисбалансом (4.5175% меток 1).
   - Веса увеличивают значимость положительного класса (заставка), улучшая `recall`.
 
 - **Постобработка (`binary_closing`)**:
@@ -125,6 +125,32 @@ opencv-python
 - **Классификатор**: Линейный слой, преобразующий выход трансформера в логиты для 2 классов (0, 1).
 - **CRF-слой**: Моделирует зависимости между метками, вычисляя оптимальную последовательность.
 
+```python
+class IntroDetectionTransformer(nn.Module):
+    def __init__(self, d_model=768, n_heads=8, n_layers=4, num_labels=2, class_weights=None):
+        super().__init__()
+        self.pos_encoding = nn.Parameter(torch.zeros(1, 60, d_model))
+        encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=n_heads, batch_first=True, dropout=0.1)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+        self.classifier = nn.Linear(d_model, num_labels)
+        self.crf = CRF(num_labels, batch_first=True)
+        if class_weights is not None:
+            self.register_buffer('class_weights', class_weights)
+        else:
+            self.class_weights = None
+
+    def forward(self, embeddings, labels=None, mask=None):
+        x = embeddings + self.pos_encoding
+        x = self.transformer(x) 
+        logits = self.classifier(x)
+        if labels is not None:
+            if self.class_weights is not None:
+                logits[:, :, 1] = logits[:, :, 1] * self.class_weights[1]
+            return self.crf(logits, labels.long(), mask=mask)
+        else:
+            return self.crf.decode(logits, mask=mask)
+```
+
 ### Кастомный CRF
 Кастомная реализация CRF:
 - **Переходы**: Матрица `[num_tags, num_tags]` (2x2) для вероятностей переходов между метками.
@@ -141,7 +167,7 @@ model.crf.transitions.data[1, 0] -= 1.5  # Уменьшаем вероятнос
 
 Модель обучалась в Jupyter Notebook `training_notebook.ipynb`:
 
-- **Датасет**: `dataset.pt` с эмбеддингами CLIP `[60, 768]` и метками `[60]`.
+- **Датасет**: `train_dataset.pt` с эмбеддингами CLIP `[60, 768]` и метками `[60]`. Сформирован из эмбеддингов сериалов, обрезанных первыми 3 минутами(зачастую заставка в этом интервале)
 - **Предобработка**:
   - Многократная аугментация (2 копии) для кадров с меткой 1.
   - Oversampling с весами `[20.0, 1.0]` для окон с метками 1.
