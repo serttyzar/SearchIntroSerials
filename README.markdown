@@ -234,7 +234,7 @@ with torch.no_grad():
 - Визуализация: [Вставьте ссылку на график или изображение].
 
 *Пример 2*: Видео `220020068_456255389.mp4`.
-- Предсказание: ![Alt text](relative%20pictures/video_test_2.png?raw=true "Title").
+- Предсказание: ![Alt text](pictures/video_test_2.png?raw=true "Title").
 - Значение в labels: {"url": "https://vkvideo.ru/video-220020068_456255389", "name": "\u0411\u0430\u0441\u043a\u0435\u0442\u0441. 1 \u0441\u0435\u0437\u043e\u043d, 9 \u0441\u0435\u0440\u0438\u044f", "start": "0:00:00", "end": "0:00:08"}.
 
 ## Зависимости
@@ -251,24 +251,12 @@ with torch.no_grad():
 
 Установите зависимости:
 ```bash
-pip install torch torchvision transformers numpy scipy scikit-learn tqdm opencv-python
+pip install -r requirements.txt
 ```
-
-## Вклад в проект
-
-Приветствуются любые улучшения! Открывайте issues или отправляйте pull requests на [GitHub](https://github.com/serttyzar/SearchIntroSerials).
 
 ## Лицензия
 
 Проект распространяется под лицензией MIT. См. [LICENSE](LICENSE).
-
-## Благодарности
-
-- [CLIP: A Neural Network for Visual Understanding](https://arxiv.org/abs/2103.00020)
-- [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
-- [Conditional Random Fields](https://repository.upenn.edu/cis_papers/159/)
-- PyTorch ([pytorch.org](https://pytorch.org/))
-- Transformers ([huggingface.co](https://huggingface.co/transformers/))
 
 ## Будущие улучшения
 
